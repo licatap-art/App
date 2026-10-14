@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wissens-Quiz</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&display=swap">
+<style>
+:root{--bg:#eef2fb;--ink:#14213d;--card:#fff;--accent:#2f4bff;--on-accent:#fff;--sun:#ffc933;--ok:#1a9d5c;--bad:#d6334a;--muted:#5b6784;--line:#d5dcf0;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1630;--ink:#eef1fb;--card:#19224a;--accent:#8196ff;--on-accent:#0f1630;--sun:#ffc933;--ok:#3ecf8e;--bad:#ff6b81;--muted:#a3adcc;--line:#2c3866}}
+:root[data-theme="dark"]{--bg:#0f1630;--ink:#eef1fb;--card:#19224a;--accent:#8196ff;--on-accent:#0f1630;--ok:#3ecf8e;--bad:#ff6b81;--muted:#a3adcc;--line:#2c3866}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:500;line-height:1.4}
+main{max-width:520px;margin:0 auto;padding:20px 18px 32px}
+h1{font-size:2.4rem;line-height:1.05;margin:24px 0 8px;font-weight:800}
+h2{font-size:1.45rem;line-height:1.25;margin:18px 0 20px;font-weight:700}
+p{color:var(--muted);margin:0 0 16px}
+button{font:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 24px}
+.chip{border:2px solid var(--line);background:var(--card);color:var(--ink);padding:10px 16px;border-radius:999px;font-weight:700}
+.chip[aria-pressed="true"]{background:var(--sun);border-color:var(--sun);color:#14213d}
+.cta{width:100%;border:0;border-radius:16px;padding:16px;background:var(--accent);color:var(--on-accent);font-weight:800;font-size:1.1rem}
+.best{margin-top:16px;text-align:center;color:var(--muted)}
+.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.meta{display:flex;justify-content:space-between;color:var(--muted);margin:10px 0 0;font-size:.95rem}
+.opt{display:block;width:100%;text-align:left;margin:0 0 10px;padding:15px 16px;border:2px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);font-weight:600;font-size:1.05rem}
+.opt.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 18%,var(--card))}
+.opt.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 18%,var(--card))}
+.fact{background:var(--card);border-left:5px solid var(--sun);padding:12px 14px;border-radius:10px;margin:6px 0 16px}
+.score{font-size:5rem;font-weight:800;line-height:1;margin:20px 0 4px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<section id="start">
+  <h1>Wie viel weißt du wirklich?</h1>
+  <p>Wähle ein Thema, bis zu 10 Fragen pro Runde. Nach jeder Antwort lernst du etwas dazu.</p>
+  <div class="chips" id="cats"></div>
+  <button class="cta" id="go">Runde starten</button>
+  <div class="best" id="best"></div>
+</section>
+<section id="quiz" hidden>
+  <div class="bar"><i id="prog"></i></div>
+  <div class="meta"><span id="count"></span><span id="pts"></span></div>
+  <h2 id="q"></h2>
+  <div id="opts"></div>
+  <div class="fact" id="fact" hidden></div>
+  <button class="cta" id="next" hidden>Weiter</button>
+</section>
+<section id="end" hidden>
+  <p id="endlabel" style="margin-top:28px">Dein Ergebnis</p>
+  <div class="score" id="final"></div>
+  <p id="verdict"></p>
+  <div class="best" id="newbest" style="margin:0 0 20px"></div>
+  <button class="cta" id="again">Nochmal spielen</button>
+</section>
+</main>
+<script>
+var Q=[
+["Geografie","Was ist die Hauptstadt von Australien?",["Sydney","Canberra","Melbourne","Perth"],1,"Canberra wurde als Kompromiss zwischen Sydney und Melbourne gegründet."],
+["Geografie","Welcher ist der längste Fluss Afrikas?",["Kongo","Niger","Nil","Sambesi"],2,"Der Nil ist rund 6.650 km lang."],
+["Geografie","Wie viele Bundesländer hat Deutschland?",["14","15","16","17"],2,"Es sind 16, davon 3 Stadtstaaten."],
+["Geografie","Welches ist das kleinste Land der Welt?",["Monaco","Vatikanstadt","San Marino","Liechtenstein"],1,"Die Vatikanstadt hat nur etwa 0,44 km²."],
+["Geografie","Welcher Ozean ist der größte?",["Atlantik","Indischer Ozean","Pazifik","Arktischer Ozean"],2,"Der Pazifik bedeckt etwa ein Drittel der Erdoberfläche."],
+["Geografie","Welches Land hat die meisten Einwohner?",["Indien","China","USA","Indonesien"],0,"Indien hat China 2023 überholt."],
+["Natur","Welches ist das chemische Symbol für Gold?",["Go","Au","Ag","Gd"],1,"Au kommt vom lateinischen Wort „aurum“."],
+["Natur","Wie viele Planeten hat unser Sonnensystem?",["7","8","9","10"],1,"Pluto gilt seit 2006 als Zwergplanet."],
+["Natur","Wie viele Knochen hat ein erwachsener Mensch?",["106","206","306","406"],1,"Babys haben rund 300, viele wachsen später zusammen."],
+["Natur","Welches Gas nehmen Pflanzen bei der Photosynthese auf?",["Sauerstoff","Stickstoff","Kohlendioxid","Wasserstoff"],2,"Dabei geben sie Sauerstoff ab."],
+["Natur","Was ist das härteste natürliche Material?",["Gold","Diamant","Eisen","Quarz"],1,"Diamant steht auf der Mohs-Skala bei 10."],
+["Natur","Was misst man in Hertz?",["Frequenz","Spannung","Temperatur","Kraft"],0,"1 Hertz entspricht einer Schwingung pro Sekunde."],
+["Geschichte","In welchem Jahr fiel die Berliner Mauer?",["1985","1989","1991","1993"],1,"Am 9. November 1989 öffnete sich die Grenze."],
+["Geschichte","Wer erreichte 1492 für Europa Amerika?",["Magellan","Kolumbus","Vasco da Gama","Cook"],1,"Kolumbus landete auf den Bahamas."],
+["Geschichte","Wer betrat als Erster den Mond?",["Gagarin","Armstrong","Aldrin","Glenn"],1,"Das war am 21. Juli 1969 (MEZ)."],
+["Geschichte","Wann begann der Erste Weltkrieg?",["1904","1914","1918","1939"],1,"Auslöser war das Attentat von Sarajevo."],
+["Geschichte","Welches Volk baute Machu Picchu?",["Azteken","Maya","Inka","Olmeken"],2,"Die Stadt in Peru entstand im 15. Jahrhundert."],
+["Geschichte","Wer war der erste Bundeskanzler der BRD?",["Konrad Adenauer","Willy Brandt","Ludwig Erhard","Helmut Kohl"],0,"Adenauer regierte von 1949 bis 1963."],
+["Kultur","Wie viele Spieler hat ein Fußballteam auf dem Feld?",["10","11","12","9"],1,"Inklusive Torwart sind es 11."],
+["Kultur","Wer malte die Mona Lisa?",["Michelangelo","Raffael","Leonardo da Vinci","Rembrandt"],2,"Sie hängt im Louvre in Paris."],
+["Kultur","Welche Sprache haben die meisten Menschen als Muttersprache?",["Englisch","Spanisch","Mandarin","Hindi"],2,"Mandarin hat über 900 Millionen Muttersprachler."],
+["Kultur","Wer schrieb das Drama „Faust“?",["Schiller","Goethe","Lessing","Kafka"],1,"Goethe arbeitete fast sein ganzes Leben daran."],
+["Kultur","Wie viele Saiten hat eine Standard-Gitarre?",["4","5","6","8"],2,"Gestimmt wird E-A-D-G-H-E."],
+["Kultur","Aus welchem Land stammt Sushi in seiner heutigen Form?",["China","Japan","Korea","Thailand"],1,"Das moderne Nigiri-Sushi entstand in Edo, dem heutigen Tokio."],
+["Englisch","Was bedeutet „to look forward to“?",["sich freuen auf","nach vorne schauen","vorwärts blicken","erwarten müssen"],0,"Danach folgt ein -ing: I look forward to seeing you."],
+["Englisch","Welche Form ist richtig? „She ___ to school every day.“",["go","goes","going","gone"],1,"Bei he/she/it kommt im Present Simple ein -s dazu."],
+["Englisch","Was ist die Vergangenheit von „to buy“?",["buyed","bought","boughted","buyt"],1,"Buy ist unregelmäßig: buy, bought, bought."],
+["Englisch","Was heißt „library“ auf Deutsch?",["Buchhandlung","Bibliothek","Büro","Schule"],1,"Buchhandlung heißt bookshop oder bookstore."],
+["Englisch","Welcher Satz ist richtig?",["I live here since 2020.","I have lived here since 2020.","I am living here since 2020.","I lived here since 2020."],1,"Bei „since“ und „for“ nutzt man das Present Perfect."],
+["Englisch","Was bedeutet „actually“?",["aktuell","eigentlich","später","genau"],1,"Aktuell heißt „currently“. Ein klassischer falscher Freund."],
+["Französisch","Wie sagt man „Danke“ auf Französisch?",["Merci","S'il vous plaît","Pardon","Bonjour"],0,"„S'il vous plaît“ heißt „bitte“."],
+["Französisch","Was heißt „Je m'appelle“?",["Ich bin","Ich heiße","Ich habe","Ich komme"],1,"Wörtlich: „Ich nenne mich“."],
+["Französisch","Welches Wort bedeutet „Brot“?",["pain","poisson","pomme","lait"],0,"Poisson ist Fisch, pomme Apfel und lait Milch."],
+["Französisch","Was bedeutet „nous avons“?",["wir sind","wir haben","wir gehen","wir machen"],1,"Avoir (haben) ist ein wichtiges Hilfsverb."],
+["Französisch","Welche Zahl ist „quatre-vingts“?",["60","70","80","90"],2,"Wörtlich: vier mal zwanzig."],
+["Französisch","Welcher Artikel passt zu „maison“ (Haus)?",["le","la","les","un"],1,"Maison ist weiblich: la maison."],
+["Buchhaltung","Was steht in der Bilanz auf der Aktivseite?",["Woher das Geld kommt","Wofür das Geld verwendet wird","Nur der Gewinn","Nur die Steuern"],1,"Aktiva zeigt das Vermögen, Passiva die Herkunft des Kapitals."],
+["Buchhaltung","Wie lautet die Grundformel der Bilanz?",["Vermögen = Eigenkapital + Fremdkapital","Vermögen = Umsatz − Kosten","Eigenkapital = Schulden","Gewinn = Vermögen"],0,"Aktiva und Passiva sind immer gleich groß."],
+["Buchhaltung","Wie hoch ist der normale Umsatzsteuersatz in Deutschland?",["7 %","16 %","19 %","21 %"],2,"7 % ist der ermäßigte Satz, z. B. für viele Lebensmittel."],
+["Buchhaltung","Was bedeutet „Soll“ in der Buchführung?",["Die linke Seite eines Kontos","Die rechte Seite eines Kontos","Der Gewinn","Die Steuer"],0,"Die rechte Seite heißt „Haben“."],
+["Buchhaltung","Was ist ein Aufwand?",["Verbrauch von Werten im Unternehmen","Zahlungseingang vom Kunden","Geliehenes Geld","Der Gewinn"],0,"Beispiele: Miete, Gehälter, Material."],
+["Buchhaltung","Wofür steht „EÜR“?",["Einnahmen-Überschuss-Rechnung","Einkommen-Ertrag-Rechnung","Eigenkapital-Übersicht-Rechnung","Einzel-Überschuss-Regelung"],0,"Kleine Selbstständige ermitteln damit ihren Gewinn."],
+["Mathe","Wie viel sind 15 % von 200?",["20","30","35","40"],1,"10 % sind 20, 5 % sind 10, zusammen 30."],
+["Mathe","Was ist die Wurzel aus 144?",["10","11","12","14"],2,"12 × 12 = 144."],
+["Mathe","Wie lautet die Formel für die Kreisfläche?",["2πr","πr²","πd²","r²"],1,"2πr ist der Umfang."],
+["Mathe","Löse: 3x + 5 = 20. Was ist x?",["3","5","7","15"],1,"3x = 15, also x = 5."],
+["Mathe","Wie groß ist die Winkelsumme im Dreieck?",["90°","180°","270°","360°"],1,"Das gilt für jedes Dreieck."],
+["Mathe","Was ist 7 × 8?",["54","56","58","64"],1,"Merkhilfe: 5, 6, 7, 8 → 56 = 7 × 8."]
+];
+var $=function(i){return document.getElementById(i)};
+var cat="Alle",round=[],i=0,pts=0,done=false,KEY="quiz-best";
+function load(){try{return +localStorage.getItem(KEY)||0}catch(e){return 0}}
+function save(v){try{localStorage.setItem(KEY,v)}catch(e){}}
+function show(id){["start","quiz","end"].forEach(function(s){$(s).hidden=s!==id})}
+function bestText(){var b=load();$("best").textContent=b?"Dein Rekord: "+b+" Punkte":""}
+var cats=["Alle","Geografie","Natur","Geschichte","Kultur","Englisch","Französisch","Buchhaltung","Mathe"];
+cats.forEach(function(c){var b=document.createElement("button");b.className="chip";b.textContent=c;b.setAttribute("aria-pressed",c===cat);
+b.onclick=function(){cat=c;[].forEach.call($("cats").children,function(x){x.setAttribute("aria-pressed",x.textContent===c)})};$("cats").appendChild(b)});
+function shuffle(a){a=a.slice();for(var n=a.length-1;n>0;n--){var j=Math.floor(Math.random()*(n+1));var t=a[n];a[n]=a[j];a[j]=t}return a}
+function start(){var pool=Q.filter(function(q){return cat==="Alle"||q[0]===cat});round=shuffle(pool).slice(0,10);i=0;pts=0;show("quiz");ask()}
+function ask(){done=false;var q=round[i];$("count").textContent="Frage "+(i+1)+" von "+round.length;$("pts").textContent=pts+" Punkte";
+$("prog").style.width=(i/round.length*100)+"%";$("q").textContent=q[1];$("fact").hidden=true;$("next").hidden=true;$("opts").innerHTML="";
+var order=shuffle([0,1,2,3]);order.forEach(function(k){var b=document.createElement("button");b.className="opt";b.textContent=q[2][k];b.onclick=function(){pick(b,k)};b.dataset.k=k;$("opts").appendChild(b)})}
+function pick(btn,k){if(done)return;done=true;var q=round[i];if(k===q[3])pts++;
+[].forEach.call($("opts").children,function(b){if(+b.dataset.k===q[3])b.classList.add("ok");else if(b===btn)b.classList.add("bad")});
+$("pts").textContent=pts+" Punkte";$("fact").textContent=(k===q[3]?"Richtig! ":"Leider falsch. ")+q[4];$("fact").hidden=false;
+$("next").textContent=i===round.length-1?"Ergebnis ansehen":"Weiter";$("next").hidden=false;$("next").focus()}
+function finish(){$("prog").style.width="100%";show("end");var n=round.length;$("final").textContent=pts+" / "+n;
+var r=pts/n;$("verdict").textContent=r===1?"Perfekt! Kein Fehler.":r>=.8?"Stark! Du bist richtig fit.":r>=.5?"Solide. Eine Runde noch?":"Da geht noch was. Jede Runde macht dich besser.";
+var b=load();if(pts>b){save(pts);$("newbest").textContent="Neuer Rekord!"}else{$("newbest").textContent="Rekord: "+b+" Punkte"}bestText()}
+$("go").onclick=start;$("again").onclick=function(){show("start")};
+$("next").onclick=function(){i++;if(i<round.length)ask();else finish()};
+bestText();
+</script>
+</body>
+</html>
